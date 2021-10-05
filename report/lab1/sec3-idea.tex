@@ -29,19 +29,20 @@
     \end{bmatrix}
 \end{equation}
 
-可得下图
+可得图\ref{raw_data}
 
-\begin{figure}[H]
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=0.7\textwidth]{figures/Figure_1.png}
     \caption{生成原始数据}
+    \label{raw_data}
 \end{figure}
 
 \subsection{多项式拟合}
 
 \subsubsection{误差函数}
 
-根据泰勒展开公式，我们可以用公式\eqref{yxw}所示的多项式函数来尝试拟合一个未知的曲线
+根据泰勒展开公式，我们可以用公式\eqref{yxw}所示的多项式函数来尝试拟合一个未知的曲线。
 
 \begin{equation}
     y(x, w) = w_0 + w_1 x + \ldots + w_m x^m = \sum_{i = 1}^{m} w_i x^i
