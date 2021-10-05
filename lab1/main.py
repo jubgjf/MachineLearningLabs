@@ -215,10 +215,31 @@ def draw_ploy(
     )
 
 
+def calc_loss(x: list, T: list, N: int, m: int, w: list) -> float:
+    """计算拟合误差
+
+    Args:
+        x: 原始数据 x 坐标
+        T: 原始数据 y 坐标
+        N: len(x)
+        m: 多项式函数的最高次数
+        w: 拟合的多项式系数向量
+
+    Returns:
+        返回误差
+    """
+
+    loss = 0
+    for i in range(0, N):
+        loss += (calc_ploy(x[i], w, m) - T[i]) ** 2
+
+    return loss / 2
+
+
 if __name__ == "__main__":
     # ===== 原始数据 =====
 
-    x, T, N = raw_data(step=0.1)
+    x, T, N = raw_data(step=0.01)
 
     plt.title("Lab 1")
     x_sin = np.arange(0, 1, 0.1)
@@ -228,9 +249,8 @@ if __name__ == "__main__":
 
     # ===== 超参数 =====
 
-    draw_ploy(x, T, N, m=3, lam=0, method=0)
-    draw_ploy(x, T, N, m=3, lam=0, method=1)
-    draw_ploy(x, T, N, m=3, lam=0, method=2)
+    draw_ploy(x, T, N, m=50, lam=0, method=0)
+    draw_ploy(x, T, N, m=50, lam=0, method=2)
 
     # ===== 绘图 =====
 
