@@ -205,7 +205,7 @@
 
 \subsubsection{梯度下降法}
 
-梯度下降法可以找到一个函数的局部极小值，由于在拟合曲线问题中，$E(w)$是关于$w$的二次函数，所以找到的极小值就是我们期望的最小值
+梯度下降法可以找到一个函数的局部极小值，由于在拟合曲线问题中，$E(w)$是关于$w$的二次函数，所以找到的极小值就是我们期望的最小值。
 
 梯度下降法的迭代公式如下
 
@@ -213,7 +213,9 @@
     w = w - \alpha \frac{\partial E(w)}{\partial w}
 \end{equation}
 
-其中$\alpha$为学习率，相当于梯度下降时每一步的步长。此学习率不宜过大
+其中$\alpha$为学习率，相当于梯度下降时每一步的步长。此学习率不宜过大。
+
+当进行一次梯度下降迭代之后，若误差loss反而上升，则说明通过梯度下降法已经达到极小值。此时可以适当降低学习率（步长）并重新进行之后的迭代，以获得更好的效果。
 
 使用Numpy运行梯度下降法算法的代码如下
 
@@ -221,14 +223,36 @@
 \begin{verbatim}
     # 梯度下降
     alpha = 0.01  # 学习率
-    turn = 10000  # 迭代次数
+
+    loss_last = 1000000  # 上一次迭代的误差
+    loss_now = 0  # 当前迭代的误差
+
+    turn = 0
+    max_turn = 1000000  # 最大迭代次数
+
     w = np.ones(m + 1)
-    for i in range(0, turn):
-    w = w - alpha * (
-        np.dot(np.dot(XT, X), w)
-        - np.dot(XT, T)
-        + lam * np.dot(np.identity(m + 1), w)
-    )
+    while True:
+        w_now = w - alpha * (
+            np.dot(np.dot(XT, X), w)
+            - np.dot(XT, T)
+            + lam * np.dot(np.identity(m + 1), w)
+        )
+        loss_now = calc_loss(x, T, N, m, w)
+
+        # 梯度下降之后，误差反而上升，说明达到当前步长的极小值
+        if loss_now > loss_last:
+            break
+        else:
+            w = w_now
+            loss_last = loss_now
+
+        # 防止迭代次数过多
+        turn += 1
+        if turn >= max_turn:
+            print("===== hit max_turn limit =====")
+            print("loss = " + str(loss_now))
+            w = w_now
+            break
 \end{verbatim}
 \rule{\textwidth}{0.01em}
 
@@ -296,7 +320,10 @@ def cgm(A: np.matrix, b: np.array, size: int) -> list:
     x = np.ones(size)
     r_old = b - np.dot(A, x)
     p = r_old.copy()
-    for i in range(0, 10):
+
+    turn = 0
+    max_turn = 100  # 最大迭代次数
+    while True:
         a = np.dot(r_old.T, r_old) / np.dot(np.dot(p.T, A), p)
         x = x + np.dot(a, p)
         r_new = r_old - np.dot(np.dot(a, A), p)
@@ -306,7 +333,11 @@ def cgm(A: np.matrix, b: np.array, size: int) -> list:
         p = r_new + np.dot(bb, p)
         r_old = r_new
 
-    return x
+        # 防止迭代次数过多
+        turn += 1
+        if turn >= max_turn:
+            print("===== hit max_turn limit =====")
+            break
 \end{verbatim}
 \rule{\textwidth}{0.01em}
 

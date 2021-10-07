@@ -168,13 +168,36 @@ $m = 9$时，拟合情况如图\ref{m9}。
 
 \subsubsection{附加研究}
 
-测试$m = 50$，数据量$N = 100$时的解析解结果和共轭梯度方法得到的结果，如图\ref{m50}
+测试$m = 50$，数据量$N = 50$时的解析解结果和共轭梯度方法得到的结果，如图\ref{m50}
 
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.7\textwidth]{figures/Figure_16.png}
-    \caption{$m = 50$，数据量$N = 100$时的解析解结果和共轭梯度方法得到的结果}
+    \caption{$m = 50$，数据量$N = 50$时的解析解结果和共轭梯度方法得到的结果}
     \label{m50}
 \end{figure}
 
-可见用解析解法拟合的曲线几乎完全丢失了$sin(2 \pi x)$的几何性质，而共轭梯度法拟合的曲线拟合程度极好。
+可见用解析解法拟合的曲线几乎完全丢失了$sin(2 \pi x)$的几何性质，而梯度下降法和共轭梯度法拟合的曲线拟合程度比较好。这是由于解析解在求矩阵的逆时，该矩阵很可能是一个病态矩阵\cite{ref4}，即在线性方程组
+\begin{equation}
+    A x = b
+\end{equation}
+中，解集$x$对$A$和$b$的系数高度敏感，在Numpy做浮点运算时，多次舍入的浮点对方程组的解$w$造成了巨大干扰，导致获得的系数向量$w$出现极大误差。
+
+对比效果较好的梯度下降法和共轭梯度法，结合程序运行状况进行分析，在梯度下降法和共轭梯度法迭代时统计其迭代次数（以图\ref{m50}时的计算为例），可得图\ref{time1}和\ref{time2}，分别代表梯度下降法和共轭梯度法所需的迭代次数。
+
+\begin{figure}[htbp]
+    \begin{minipage}[t]{0.5\linewidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/Figure_17.png}
+        \caption{梯度下降法迭代次数}
+        \label{time1}
+    \end{minipage}
+    \begin{minipage}[t]{0.5\linewidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/Figure_18.png}
+        \caption{共轭梯度法迭代次数}
+        \label{time2}
+    \end{minipage}
+\end{figure}
+
+从图\ref{time1}可见，梯度下降法一共迭代了$1000000$次，触发了最大迭代次数限制。在我的电脑上（Intel Core i7-1065G7, 32GB RAM）上经过大约15分钟才计算完成。而共轭梯度法只需迭代$36$次即可收敛，如图\ref{time2}。因此从程序的角度共轭梯度法优于梯度下降法。
