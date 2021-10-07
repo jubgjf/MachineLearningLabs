@@ -113,7 +113,10 @@ def cgm(A: np.matrix, b: np.array, size: int) -> list:
     x = np.ones(size)
     r_old = b - np.dot(A, x)
     p = r_old.copy()
-    for i in range(0, 10):
+
+    turn = 0
+    max_turn = 100  # 最大迭代次数
+    while True:
         a = np.dot(r_old.T, r_old) / np.dot(np.dot(p.T, A), p)
         x = x + np.dot(a, p)
         r_new = r_old - np.dot(np.dot(a, A), p)
@@ -122,6 +125,14 @@ def cgm(A: np.matrix, b: np.array, size: int) -> list:
         bb = np.dot(r_new.T, r_new) / np.dot(r_old.T, r_old)
         p = r_new + np.dot(bb, p)
         r_old = r_new
+
+        # 防止迭代次数过多
+        turn += 1
+        if turn >= max_turn:
+            print("===== hit max_turn limit =====")
+            break
+
+    print("turn = " + str(turn))
 
     return x
 
@@ -162,14 +173,38 @@ def gen_ploy(x: list, T: list, N: int, m: int, lam: float = 0, method: int = 0) 
     elif method == 1:
         # 梯度下降
         alpha = 0.01  # 学习率
-        turn = 10000  # 迭代次数
+
+        loss_last = 1000000  # 上一次迭代的误差
+        loss_now = 0  # 当前迭代的误差
+
+        turn = 0
+        max_turn = 1000000  # 最大迭代次数
+
         w = np.ones(m + 1)
-        for i in range(0, turn):
-            w = w - alpha * (
+        while True:
+            w_now = w - alpha * (
                 np.dot(np.dot(XT, X), w)
                 - np.dot(XT, T)
                 + lam * np.dot(np.identity(m + 1), w)
             )
+            loss_now = calc_loss(x, T, N, m, w)
+
+            # 梯度下降之后，误差反而上升，说明达到当前步长的极小值
+            if loss_now > loss_last:
+                break
+            else:
+                w = w_now
+                loss_last = loss_now
+
+            # 防止迭代次数过多
+            turn += 1
+            if turn >= max_turn:
+                print("===== hit max_turn limit =====")
+                print("loss = " + str(loss_now))
+                w = w_now
+                break
+
+        print("turn = " + str(turn))
     elif method == 2:
         # 共轭梯度
         w = cgm(np.dot(XT, X) + lam * np.identity(m + 1), np.dot(XT, T), m + 1)
@@ -196,6 +231,7 @@ def draw_ploy(
 
     w = gen_ploy(x, T, N, m, lam, method)
     np.set_printoptions(suppress=True)  # 取消科学计数法打印
+    print("method = ", str(method))
     print("w = ", end="")
     print(w)
     y_guess = []
@@ -250,6 +286,7 @@ if __name__ == "__main__":
     # ===== 超参数 =====
 
     draw_ploy(x, T, N, m=50, lam=0, method=0)
+    draw_ploy(x, T, N, m=50, lam=0, method=1)  # SLOW !!!
     draw_ploy(x, T, N, m=50, lam=0, method=2)
 
     # ===== 绘图 =====
