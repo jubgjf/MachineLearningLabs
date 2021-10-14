@@ -1,0 +1,174 @@
+\section{设计思想（本程序中的用到的主要算法及数据结构）}
+
+\subsection{逻辑回归算法原理}
+
+\subsubsection{似然函数}
+
+对于一个二分类问题，有类别 $Y \in \{ 0, 1 \}$，以及样本数据向量
+\begin{equation}
+    \mathbf{X} =
+    \begin{bmatrix}
+        x_1 \\ x_2 \\ \vdots \\ x_n
+    \end{bmatrix}
+\end{equation}
+
+$P(x_i | Y = y_k)$相互独立，且$P(x_i | Y = y_k) \sim \mathcal{N} (\mu_{ik}, \sigma_i)$。
+同时$P(Y) \sim \mathcal{B} (\pi)$。设$P(Y = 0) = \pi$，$p(Y = 1) = 1 - \pi$。
+
+对于一个新样本$\mathbf{X}$，设
+\begin{equation}
+    \mathbf{\hat{X}}=
+    \begin{bmatrix}
+        1 \\ \mathbf{X}
+    \end{bmatrix}=
+    \begin{bmatrix}
+        1 \\ x_1 \\ \vdots \\ x_n
+    \end{bmatrix}
+\end{equation}
+为了便于后续化简，以后均用$\mathbf{X}$代表$\mathbf{\hat{X}}$，即
+\begin{equation}
+    \mathbf{X}=
+    \begin{bmatrix}
+        x_0=1 \\ x_1 \\ \vdots \\ x_n
+    \end{bmatrix}
+\end{equation}
+
+设$\mathbf{X}$属于类别$0$的概率为$P(Y=0|\mathbf{X})$，则有
+\begin{align}
+    \label{equ1}
+    P(Y=0|\mathbf{X})   &=  \dfrac{P(\mathbf{X}|Y = 0) P(Y = 0)}{P(\mathbf{X}|Y = 0) P(Y = 0) + P(\mathbf{X}|Y=1) P(Y=1)} \\
+                        &=  \dfrac{1}{1+\dfrac{P(\mathbf{X}|Y=1) P(Y=1)}{P(\mathbf{X}|Y=0) P(Y=0)}} \\
+                        &=  \dfrac{1}{1+\exp\left(\ln \dfrac{P(\mathbf{X}|Y=1) P(Y=1)}{P(\mathbf{X}|Y=0) P(Y=0)}\right)} \\
+                        &=  \dfrac{1}{1+\exp\left(\ln \dfrac{P(\mathbf{X}|Y=1)}{P(\mathbf{X}|Y=0)} +\ln \dfrac{1 - \pi}{\pi}\right)} \\
+                        &=  \dfrac{1}{1+\exp\left(\ln\left(\dfrac{\prod\limits^n_{i=0} P(x_i|Y=1)}{\prod\limits^n_{i=0} P(x_i|Y=0)}\right) +\ln \dfrac{1 - \pi}{\pi}\right)} \\
+                        &=  \dfrac{1}{1+\exp\left(\sum\limits^n_{i=0}\ln\left(\dfrac{P(x_i|Y=1)}{P(x_i|Y=0)}\right) +\ln \dfrac{1 - \pi}{\pi}\right)} \\
+                        &=  \dfrac{1}{1+\exp\left(\sum\limits^n_{i=1}\ln\left(\dfrac{\sqrt{2\pi}\sigma_i  \exp\left(-\dfrac{\left(x_i-\mu_{i1}\right)^2}{2\sigma^2_i}\right)}{\sqrt{2\pi}\sigma_i \exp\left(-\dfrac{\left(x_i-\mu_{i0}\right)^2}{2\sigma^2_i}\right)}\right)+\ln \dfrac{1-\pi}{\pi}\right)} \\
+                        &=  \dfrac{1}{1+\exp\left(\sum\limits^n_{i=1}\left(-\dfrac{\left(x_i-\mu_{i1}\right)^2}{2\sigma^2_i}+\dfrac{\left(x_i-\mu_{i0}\right)^2}{2\sigma^2_i}\right)+\ln \dfrac{1-\pi}{\pi}\right)} \\
+                        &=  \dfrac{1}{1+\exp\left(\sum\limits^n_{i=1}\left(\dfrac{\mu_{i1}-\mu_{i0}}{\sigma^2_i}x_i\right)+\sum\limits^n_{i=1}\dfrac{\mu^2_{i1}-\mu^2_{i2}}{2\sigma^2_i} +\ln\dfrac{1-\pi}{\pi}\right)} \\
+                        &=  \dfrac{1}{1+\exp\left(\mathbf{w}^T\mathbf{X}\right)}
+\end{align}
+其中
+\begin{equation}
+    \mathbf{w} =
+    \begin{bmatrix}
+        \sum\limits^n_{i=1}\dfrac{\mu^2_{i1}-\mu^2_{i2}}{2\sigma^2_i} +\ln\dfrac{1-\pi}{\pi} \\
+        \dfrac{\mu_{11}-\mu_{10}}{\sigma^2_1} \\
+        \vdots \\
+        \dfrac{\mu_{i1}-\mu_{i0}}{\sigma^2_i} \\
+        \vdots \\
+        \dfrac{\mu_{n1}-\mu_{n0}}{\sigma^2_n} \\
+    \end{bmatrix}
+\end{equation}
+由于$P(Y=1|\mathbf{X})+P(Y=0|\mathbf{X})=1$，所以
+\begin{equation}
+    P(Y=1|\mathbf{X})=\dfrac{\exp\left(\mathbf{w}^T \mathbf{X}\right)}{1+\exp\left(\mathbf{w}^T \mathbf{X}\right)}
+\end{equation}
+
+由此可得分类的原理：对于一个新样本$\mathbf{X}$，分别计算其属于$0$类和$1$类的概率，取概率大者作为$\mathbf{X}$的类别。
+
+由
+\begin{equation}
+    \label{sep1}
+    \dfrac{P(Y=0|\mathbf{X})}{P(Y=1|\mathbf{X})} = \exp\left(\mathbf{w}^T\mathbf{X}\right)
+\end{equation}
+两边同时取对数，可得
+\begin{equation}
+    \label{sep2}
+    \ln\dfrac{P(Y=0|\mathbf{X})}{P(Y=1|\mathbf{X})} = \mathbf{w}^T\mathbf{X}
+\end{equation}
+则当式\ref{sep2}大于$0$，即式\ref{sep1}大于$1$时，$\mathbf{X}$的类别为$0$，否则为类别$1$。故分类面为
+\begin{equation}
+    \mathbf{w}^T\mathbf{X}=0
+\end{equation}
+
+对于$L$组数据$\{\langle\mathbf{X}^1,Y^1\rangle,\ldots,\langle\mathbf{X}^l,Y^l\rangle,\ldots,\langle\mathbf{X}^L,Y^L\rangle\}$，其中$Y^l$是样本数据向量$\mathbf{X}^l$的类别。使用条件最大似然估计，对参数$\mathbf{w}$进行分析
+\begin{equation}
+    \mathbf{w}_{MCLE}=arg\max_{\mathbf{w}}\prod^L_{l=1}P\left(Y^l|\mathbf{X}^l,\mathbf{w}\right)
+\end{equation}
+则条件似然函数的对数为
+\begin{align}
+    \label{likelihood}
+    l(\mathbf{w})
+    &= \ln\left(\prod^L_{l=1}P\left(Y^l|\mathbf{X}^l,\mathbf{w}\right)\right) \\
+    &= \sum^L_{l=1}\ln\left(P\left(Y^l|\mathbf{X}^l,\mathbf{w}\right)\right) \\
+    &= \sum^L_{l=1}\left(Y^l\ln\left(P\left(Y^l=1|\mathbf{X}^l,\mathbf{w}\right)\right)+(1-Y^l)\ln\left(P\left(Y^l=0|\mathbf{X}^l,\mathbf{w}\right)\right)\right) \\
+    &= \sum^L_{l=1}\left(Y^l\ln\left(\dfrac{P\left(Y^l=1|\mathbf{X}^l,\mathbf{w}\right)}{P\left(Y^l=0|\mathbf{X}^l,\mathbf{w}\right)}\right)+\ln\left(P\left(Y^l=0|\mathbf{X}^l,\mathbf{w}\right)\right)\right) \\
+    \label{exp1}
+    &= \sum^L_{l=1}\left(Y^l\left(\mathbf{w}^T\mathbf{X}^l\right)-\ln\left(1+\exp\left(\mathbf{w}^T\mathbf{X}^l\right)\right)\right) \\
+    &= \sum^L_{l=1}\left(Y^l\sum^n_{i=1}w_ix^l_i-\ln\left(1+\exp\sum^n_{i=1}w_ix^l_i\right)\right) \\
+    &= \sum^L_{l=1}\left(Y^l\mathbf{w}^T\mathbf{X}^l-\ln\left(1+\exp\left(\mathbf{w}^T\mathbf{X}^l\right)\right)\right)
+\end{align}
+
+要最大化式\ref{likelihood}中的对数条件似然函数，只需最小化其相反数，即
+\begin{equation}
+    \mathcal{L} (\mathbf{w})=\sum^L_{l=1}\left(-Y^l\mathbf{w}^T\mathbf{X}^l+\ln\left(1+\exp\left(\mathbf{w}^T\mathbf{X}^l\right)\right)\right)
+\end{equation}
+
+为了降低模型的复杂度，仿照实验一中的做法，在对数条件似然函数中补充一个正则项（惩罚项），即
+\begin{equation}
+    \mathcal{L} (\mathbf{w})=\sum^L_{l=1}\left(-Y^l\mathbf{w}^T\mathbf{X}^l+\ln\left(1+\exp\left(\mathbf{w}^T\mathbf{X}^l\right)\right)\right)+\dfrac{\lambda}{2}\left\lVert \mathbf{w}\right\rVert ^2
+\end{equation}
+其中
+\begin{equation}
+    \left\lVert \mathbf{w}\right\rVert ^2 
+\end{equation}
+为$\mathbf{w}$的二范数，即
+\begin{equation}
+    \left\lVert \mathbf{w}\right\rVert ^2=\mathbf{w}^T\mathbf{w}
+\end{equation}
+
+\subsubsection{凸优化}
+
+Longlongaaago\cite{tu}利用Hessian矩阵，证明了逻辑回归的目标函数$\mathcal{L} (\mathbf{w})$为凸函数，因此我们可以用梯度下降法、牛顿迭代法等方式找到其极小值。
+
+\subsubsection{梯度下降法}
+
+梯度下降迭代公式为
+\begin{align}
+    \mathbf{w}_{k+1}
+    &= \mathbf{w}_k-\alpha\dfrac{\partial\mathcal{L}(\mathbf{w})}{\partial\mathbf{w}} \\
+    &= \mathbf{w}_k-\alpha\sum^L_{l=1}\left(-Y^l\mathbf{X}^l+\dfrac{\exp\left(\mathbf{w}^T\mathbf{X}^l\right)}{1+\exp\left(\mathbf{w}^T\mathbf{X}^l\right)}\mathbf{X}^l\right) \\
+    &= \mathbf{w}_k+\alpha\sum^L_{l=1}\mathbf{X}^l\left(Y^l-\dfrac{\exp\left(\mathbf{w}^T\mathbf{X}^l\right)}{1+\exp\left(\mathbf{w}^T\mathbf{X}^l\right)}\right)
+\end{align}
+
+在添加正则项之后，利用向量求导公式\cite{dvec}，可得迭代公式为
+\begin{equation}
+    \mathbf{w}_{k+1}=\mathbf{w}_k+\alpha\left(\sum^L_{l=1}\mathbf{X}^l\left(Y^l-\dfrac{\exp\left(\mathbf{w}^T\mathbf{X}^l\right)}{1+\exp\left(\mathbf{w}^T\mathbf{X}^l\right)}\right)+\lambda\mathbf{w}\right)
+\end{equation}
+
+\subsubsection{牛顿迭代法}
+
+牛顿法的几何意义为：在每一次迭代中，均以一个二次函数去逼近$\mathcal{L}(x)$。对于高维问题，牛顿法的迭代公式可见式\ref{nt}
+\begin{equation}
+    \label{nt}
+    \mathbf{w}_{k+1}=\mathbf{w}_k-\left(\mathbf{H}\mathcal{L}(\mathbf{w})\right)^{-1}\nabla \mathcal{L}(\mathbf{w})
+\end{equation}
+其中$\mathbf{H}\mathcal{L}(\mathbf{w})$为海森矩阵，在此问题中相当于求二阶导，即
+\begin{equation}
+    \mathbf{w}_{k+1}=\mathbf{w}_k-\left(\nabla^2\mathcal{L}(\mathbf{w})\right)^{-1}\nabla \mathcal{L}(\mathbf{w})
+\end{equation}
+因此牛顿法关键是计算$\nabla \mathcal{L}(\mathbf{w})$和$\nabla^2\mathcal{L}(\mathbf{w})$。
+
+对于$\nabla \mathcal{L}(\mathbf{w})$，有
+\begin{align}
+    \nabla\mathcal{L}(\mathbf{w})
+    &= \dfrac{\partial\mathcal{L}(\mathbf{w})}{\partial\mathbf{w}} \\
+    &= \sum^L_{l=1}\mathbf{X}^l\left(-Y^l+\dfrac{\exp\left(\mathbf{w}^T\mathbf{X}^l\right)}{1+\exp\left(\mathbf{w}^T\mathbf{X}^l\right)}\right)
+\end{align}
+
+对于$\nabla^2\mathcal{L}(\mathbf{w})$，有
+\begin{align}
+    \nabla^2\mathcal{L}(\mathbf{w})
+    &= \dfrac{\partial^2\mathcal{L}(\mathbf{w})}{\partial\mathbf{w}\partial\mathbf{w}^T} \\
+    &= \dfrac{\partial\left(\sum\limits^L_{l=1}\mathbf{X}^l\left(-Y^l+\dfrac{\exp\left(\mathbf{w}^T\mathbf{X}^l\right)}{1+\exp\left(\mathbf{w}^T\mathbf{X}^l\right)}\right)\right)}{\partial\mathbf{w}^T} \\
+    &= \sum^L_{l=1}\mathbf{X}^l\dfrac{\exp\left(\mathbf{w}^T\mathbf{X}^l\right){\mathbf{X}^l}^T}{\left(1+\exp\left(\mathbf{w}^T\mathbf{X}^l\right)\right)^2}
+\end{align}
+所以牛顿法的迭代公式为
+\begin{equation}
+    \mathbf{w}_{k+1}=\mathbf{w}_k-\left(\sum^L_{l=1}\mathbf{X}^l{\mathbf{X}^l}^T\dfrac{\exp\left(\mathbf{w}^T\mathbf{X}^l\right)}{\left(1+\exp\left(\mathbf{w}^T\mathbf{X}^l\right)\right)^2}\right)^{-1}\left(\sum^L_{l=1}\mathbf{X}^l\left(-Y^l+\dfrac{\exp\left(\mathbf{w}^T\mathbf{X}^l\right)}{1+\exp\left(\mathbf{w}^T\mathbf{X}^l\right)}\right)\right)
+\end{equation}
+
+在添加正则项之后，迭代公式为
+\begin{equation}
+    \mathbf{w}_{k+1}=\mathbf{w}_k-\left(\sum^L_{l=1}\mathbf{X}^l{\mathbf{X}^l}^T\dfrac{\exp\left(\mathbf{w}^T\mathbf{X}^l\right)}{\left(1+\exp\left(\mathbf{w}^T\mathbf{X}^l\right)\right)^2}+\lambda\right)^{-1}\left(\sum^L_{l=1}\mathbf{X}^l\left(-Y^l+\dfrac{\exp\left(\mathbf{w}^T\mathbf{X}^l\right)}{1+\exp\left(\mathbf{w}^T\mathbf{X}^l\right)}\right)+\lambda\mathbf{w}\right)
+\end{equation}
