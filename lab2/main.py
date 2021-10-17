@@ -203,9 +203,21 @@ def gd(
         for vec in data:
             X = vec[0]
             Y = vec[1]
-            expwx = np.exp(np.dot(np.transpose(w), X))
-            sum_l += (Y - expwx / (1 + expwx)) * np.array(X)
-        w = w + alpha * (sum_l + lam * w)
+            wx = np.dot(np.transpose(w), X)
+            if wx >= 0:
+                expwx = np.exp(wx)
+                if expwx == np.inf:
+                    sum_l += (Y - 1) * np.array(X)
+                else:
+                    sum_l += (Y - expwx / (1 + expwx)) * np.array(X)
+            else:
+                # e^x / (1 + e^x) = 1 / (e^(-x) + 1)
+                expnwx = np.exp(-wx)
+                if expnwx == np.inf:
+                    sum_l += Y * np.array(X)
+                else:
+                    sum_l += (Y - 1 / (expnwx + 1)) * np.array(X)
+        w = w + alpha * (sum_l - lam * w)
 
         turn += 1
         if turn >= max_turn:
