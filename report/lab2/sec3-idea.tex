@@ -133,7 +133,8 @@ Longlongaaago\cite{tu}利用Hessian矩阵，证明了逻辑回归的目标函数
 
 在添加正则项之后，利用向量求导公式\cite{dvec}，可得迭代公式为
 \begin{equation}
-    \mathbf{w}_{k+1}=\mathbf{w}_k+\alpha\left(\sum^L_{l=1}\mathbf{X}^l\left(Y^l-\dfrac{\exp\left(\mathbf{w}^T\mathbf{X}^l\right)}{1+\exp\left(\mathbf{w}^T\mathbf{X}^l\right)}\right)+\lambda\mathbf{w}\right)
+    \label{gd_final}
+    \mathbf{w}_{k+1}=\mathbf{w}_k+\alpha\left(\sum^L_{l=1}\mathbf{X}^l\left(Y^l-\dfrac{\exp\left(\mathbf{w}^T\mathbf{X}^l\right)}{1+\exp\left(\mathbf{w}^T\mathbf{X}^l\right)}\right)-\lambda\mathbf{w}\right)
 \end{equation}
 
 \subsubsection{牛顿迭代法}
@@ -170,5 +171,5 @@ Longlongaaago\cite{tu}利用Hessian矩阵，证明了逻辑回归的目标函数
 
 在添加正则项之后，迭代公式为
 \begin{equation}
-    \mathbf{w}_{k+1}=\mathbf{w}_k-\left(\sum^L_{l=1}\mathbf{X}^l{\mathbf{X}^l}^T\dfrac{\exp\left(\mathbf{w}^T\mathbf{X}^l\right)}{\left(1+\exp\left(\mathbf{w}^T\mathbf{X}^l\right)\right)^2}+\lambda\right)^{-1}\left(\sum^L_{l=1}\mathbf{X}^l\left(-Y^l+\dfrac{\exp\left(\mathbf{w}^T\mathbf{X}^l\right)}{1+\exp\left(\mathbf{w}^T\mathbf{X}^l\right)}\right)+\lambda\mathbf{w}\right)
+    \mathbf{w}_{k+1}=\mathbf{w}_k-\left(\sum^L_{l=1}\mathbf{X}^l{\mathbf{X}^l}^T\dfrac{\exp\left(\mathbf{w}^T\mathbf{X}^l\right)}{\left(1+\exp\left(\mathbf{w}^T\mathbf{X}^l\right)\right)^2}-\lambda\right)^{-1}\left(\sum^L_{l=1}\mathbf{X}^l\left(-Y^l+\dfrac{\exp\left(\mathbf{w}^T\mathbf{X}^l\right)}{1+\exp\left(\mathbf{w}^T\mathbf{X}^l\right)}\right)-\lambda\mathbf{w}\right)
 \end{equation}

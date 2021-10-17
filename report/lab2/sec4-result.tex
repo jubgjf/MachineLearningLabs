@@ -53,6 +53,53 @@
     \label{loss}
 \end{figure}
 
+\subsection{溢出问题}
+
+在进行梯度下降迭代的过程中，常常会出现Numpy警报Overflow的情况，如图\ref{overflow}。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.7\textwidth]{figures/Figure_9.png}
+    \caption{Numpy警报Overflow}
+    \label{overflow}
+\end{figure}
+
+分析这一现象产生的原因。这个问题是由于在计算式\ref{gd_final}中的$\exp\left(\mathbf{w}^T\mathbf{X}\right)$时，由于$\mathbf{w}^T\mathbf{X}$较大，导致计算出的指数函数过大溢出\cite{overflow}。解决方法是在数学上做一些变形：对于式\ref{gd_final}，当$\exp\left(\mathbf{w}^T\mathbf{X}^l\right)=\infty$时，式\ref{gd_final}可进一步化简
+\begin{align}
+    \mathbf{w}_{k+1}
+    &= \mathbf{w}_k+\alpha\left(\sum^L_{l=1}\mathbf{X}^l\left(Y^l-\dfrac{\exp\left(\mathbf{w}^T\mathbf{X}^l\right)}{1+\exp\left(\mathbf{w}^T\mathbf{X}^l\right)}\right)-\lambda\mathbf{w}\right) \\
+    &= \mathbf{w}_k+\alpha\left(\sum^L_{l=1}\mathbf{X}^l\left(Y^l-1\right)-\lambda\mathbf{w}\right)
+\end{align}
+
+上述变形并没有完全解决问题。考虑当$\mathbf{w}^T\mathbf{X}<0$时，若其绝对值较大，可能会使$\exp\left(\mathbf{w}^T\mathbf{X}\right)$过于趋近$0$而导致下溢，因此仍需进一步变形，即
+\begin{align}
+    \mathbf{w}_{k+1}
+    &= \mathbf{w}_k+\alpha\left(\sum^L_{l=1}\mathbf{X}^l\left(Y^l-\dfrac{\exp\left(\mathbf{w}^T\mathbf{X}^l\right)}{1+\exp\left(\mathbf{w}^T\mathbf{X}^l\right)}\right)-\lambda\mathbf{w}\right) \\
+    &= \mathbf{w}_k+\alpha\left(\sum^L_{l=1}\mathbf{X}^l\left(Y^l-\dfrac{1}{\exp\left(-\mathbf{w}^T\mathbf{X}^l\right)+1}\right)-\lambda\mathbf{w}\right)
+\end{align}
+
+上述变形的代码如下
+
+\rule{\textwidth}{0.01em}
+\begin{verbatim}
+    for (X, Y) in data:
+        wx = np.dot(np.transpose(w), X)
+        if wx >= 0:
+            expwx = np.exp(wx)
+            if expwx == np.inf:
+                sum_l += (Y - 1) * np.array(X)
+            else:
+                sum_l += (Y - expwx / (1 + expwx)) * np.array(X)
+        else:
+            expnwx = np.exp(-wx)
+            if expnwx == np.inf:
+                sum_l += Y * np.array(X)
+            else:
+                sum_l += (Y - 1 / (expnwx + 1)) * np.array(X)
+    w = w + alpha * (sum_l - lam * w)
+\end{verbatim}
+\rule{\textwidth}{0.01em}
+
 \subsection{加入正则项}
 
 对于逻辑回归的
