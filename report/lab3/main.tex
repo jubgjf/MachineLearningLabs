@@ -1,0 +1,35 @@
+\documentclass{article}
+
+\usepackage[heading=true]{ctex}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{amsmath}
+\usepackage{geometry}
+
+\ctexset{
+    section={
+        number=\chinese{section},
+        format+=\raggedright
+    }
+}
+\geometry{a4paper, scale=0.7}
+
+\begin{document}
+
+\include{cover.tex}
+
+\input{sec1-purpose.tex}
+
+\input{sec2-requirement.tex}
+
+\input{sec3-idea.tex}
+
+\input{sec4-result.tex}
+
+\input{sec5-conclusion.tex}
+
+\input{sec6-reference.tex}
+
+\include{appendix.tex}
+
+\end{document}

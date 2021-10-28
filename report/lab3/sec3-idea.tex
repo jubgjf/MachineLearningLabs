@@ -1,0 +1,193 @@
+\section{设计思想（本程序中的用到的主要算法及数据结构）}
+
+% 多元高斯分布公式
+\def\gauss{\mathcal{N}\left(\mathbf{x}_i|\mu_k,\Sigma_k\right)}
+
+% 从 1 到 K 求和
+\def\sumk{\sum\limits^K_{k=1}}
+
+% 从 1 到 n 求和
+\def\sumn{\sum\limits^n_{i=1}}
+
+% gamma z
+\def\gammaz#1{\gamma\left(\mathbf{z}_{i {#1}}\right)}
+
+
+\subsection{k-means}
+
+我们有$n$个训练样本
+\begin{equation}
+    \mathbf{X}=
+    \begin{bmatrix}
+        \mathbf{x}_1 \\ \mathbf{x}_2 \\ \vdots \\ \mathbf{x}_n
+    \end{bmatrix}
+\end{equation}
+其中样本$\mathbf{x}_i$是一个$d$维向量。
+
+目标是要将这些样本划分到$K$个簇$C_1, C_2, \ldots C_K$中，同一簇内部的点比较“紧密”。想要衡量各个簇内部的点的“紧密”程度，可以用簇内各点到簇中心点$\mu$的距离平方和来表示，即
+\begin{equation}
+    E=\sumk\sum_{\mathbf{x}\in C_k}|\mathbf{x}-\mu_k|^2
+\end{equation}
+其中$E$越小，“紧密”程度越高。所以只需要最小化$E$。
+
+使用迭代完成这个过程：
+\begin{itemize}
+    \item 初始化$K$个簇的中心点$\mu$，可以随机取值
+    \item 计算所有点到这$K$个中心点的距离，若点$\mathbf{x}_i$到$\mu_k$的距离最近，则将点$\mathbf{x}_i$归入簇$C_k$
+    \item 根据新的簇划分，重新计算各个簇的中心点$\mu_k$。若新的中心点与旧的中心点之差小于给定值，则认为已经收敛；否则重新回到第二步
+\end{itemize}
+
+\subsection{高斯混合分布}
+
+\subsubsection{样本生成}
+
+我们有$n$个训练样本
+\begin{equation}
+    \mathbf{X}=
+    \begin{bmatrix}
+        \mathbf{x}_1 \\ \mathbf{x}_2 \\ \vdots \\ \mathbf{x}_n
+    \end{bmatrix}
+\end{equation}
+其中样本$\mathbf{x}_i$是一个$d$维向量，由一个$d$元高斯分布生成，即
+\begin{equation}
+    \mathcal{N}\left(\mathbf{x_i}|\mu,\Sigma\right)=
+    \dfrac{1}{\left(2\pi\right)^{\frac{d}{2}}|\Sigma|^{\frac{1}{2}}}\exp\left(-\dfrac{1}{2}\left(\mathbf{x_i}-\mu\right)^T\Sigma^{-1}\left(\mathbf{x_i}-\mu\right)\right)
+\end{equation}
+
+\subsubsection{用于高斯混合模型GMM的EM}
+
+GMM定义为
+\begin{equation}
+    P\left(\mathbf{x}\right)=\sumk\pi_k\mathcal{N}\left(\mathbf{x}|\mu_k,\Sigma_k\right)
+\end{equation}
+其可以看作是由$K$个$d$元高斯分布混合而成的，其中$\pi_k$为相应的高斯分布的权重，满足
+\begin{equation}
+    \label{pik}
+    \sumk\pi_k=1
+\end{equation}
+
+\subsubsection{聚类}
+
+在生成数据的时候，可以将$\mathbf{x_i}$看作是从$K$个混合的高斯分布中挑出一个单独的高斯分布所生成的。所以可以设有$K$维向量$\mathbf{z}$，表示对$K$个高斯分布的选择。
+
+$\mathbf{z}$只有一个元素为$1$，其余全为$0$，且
+\begin{equation}
+    P\left(\mathbf{z_k}=1\right)=\pi_k
+\end{equation}
+则$\mathbf{x}_i$属于簇$k$的概率为
+\begin{align}
+    P\left(\mathbf{z}_k=1|\mathbf{x_i}\right)
+    &= \dfrac{P\left(\mathbf{z}_k=1\right)P\left(\mathbf{x}_i|\mathbf{z}_k=1\right)}{P\left(\mathbf{x}_i\right)} \\
+    &= \dfrac{P\left(\mathbf{z}_k=1\right)P\left(\mathbf{x}_i|\mathbf{z}_k=1\right)}{\sumk P\left(\mathbf{z}_k=1\right)P\left(\mathbf{x}_i|\mathbf{z}_k=1\right)} \\
+    &= \dfrac{\pi_k\gauss}{\sumk\pi_k\gauss}
+\end{align}
+因此对于一个新样本$\mathbf{x}_i$，欲将其归入簇$1, 2, \ldots, K$号中的一个，只需要找到能令$P\left(\mathbf{z}_k=1|\mathbf{x}_i\right)$最大的$k$，就找到了最有可能生成$\mathbf{x}_i$的高斯分布$\gauss$，也就得到了$\mathbf{x}_i$的簇号$k$。
+
+上述过程可以表示为
+\begin{align}
+    k
+    &= \arg\max_k P\left(\mathbf{z}_k=1|\mathbf{x}_i\right) \\
+    \label{likehood}
+    &= \arg\max_k \dfrac{\pi_k\gauss}{\sumk\pi_k\gauss}
+\end{align}
+则得到的$k$就是$\mathbf{x}_i$的簇号。
+
+从公式\ref{likehood}可以看出，求出参数$\pi_k, \mu_k, \Sigma_k$是GMM聚类的关键（$k\in \{1, 2, \ldots K\}$）。可以用最大化似然函数的对数来完成此过程，即
+\begin{align}
+    \mathcal{L}\left(\mathbf{X}\right)
+    &= \ln P\left(\mathbf{X}|\pi, \mu, \Sigma\right) \\
+    &= \ln\prod^n_{i=1}\left(\sumk\pi_k\gauss\right) \\
+    \label{lnlikehood}
+    &= \sumn\ln\left(\sumk\pi_k\gauss\right)
+\end{align}
+
+对其关于$\mu_k$求导，得
+\begin{align}
+    \dfrac{\partial\mathcal{L}\left(\mathbf{X}\right)}{\partial\mu_k}
+    &= \sumn\dfrac{\pi_k\dfrac{\partial\gauss}{\partial\mu_k}}{\sumk\pi_k\gauss} \\
+    \label{dmu}
+    &= \sumn\dfrac{-\pi_k\gauss\Sigma^{-1}_k\left(\mathbf{x}_i-\mu_k\right)}{\sumk\pi_k\gauss}
+\end{align}
+（多元正态分布对$\mu$的求导过程见附录）
+
+由于$\mu_k$同时位于指数和系数，故无法获得导数为$0$的解析解，但是可以用迭代的方式逐渐逼近$\mu_k$。为了方便后续化简，设
+\begin{equation}
+    \label{gamma}
+    \gammaz{k}=\dfrac{\pi_k\gauss}{\sumk\pi_k\gauss}
+\end{equation}
+
+令式\ref{dmu}这个求导结果为$0$，等式两侧同乘$\Sigma$，可得
+\begin{equation}
+    \sumn\gammaz{k}\left(\mathbf{x}_i-\mu_k\right)=0
+\end{equation}
+化简得
+\begin{equation}
+    \label{mu}
+    \mu_k=\dfrac{\sumn\left(\gammaz{k}\mathbf{x}_i\right)}{\sumn\gammaz{k}}
+\end{equation}
+
+同理，令式\ref{lnlikehood}关于$\Sigma_k$的导数为$0$，可得
+\begin{equation}
+    \label{Sigma}
+    \Sigma_k=\dfrac{\sumn\left(\gammaz{k}\left(\mathbf{x}_i-\mu_k\right)\left(\mathbf{x}_i-\mu_k\right)^T\right)}{\sumn\gammaz{k}}
+\end{equation}
+（多元正态分布对$\Sigma$的求导过程见文献\cite{PRML}）
+
+最后只需要求出$\pi_k$的迭代式。考虑式\ref{pik}，可以使用拉格朗日乘数法，尝试最大化
+\begin{equation}
+    \mathcal{L}\left(\mathbf{X}\right)+\lambda\left(\sumk\pi_k-1\right)
+\end{equation}
+即
+\begin{equation}
+    \sumn\ln\left(\sumk\pi_k\gauss\right)+\lambda\left(\sumk\pi_k-1\right)
+\end{equation}
+对其中的$\pi_k$求导，并令导数为$0$，得
+\begin{equation}
+    \label{dpi}
+    \sumn\dfrac{\gauss}{\sumk\pi_k\gauss}+\lambda=0
+\end{equation}
+对式\ref{dpi}两侧同乘$\pi_k$，得
+\begin{equation}
+    \label{pis}
+    \pi_k\sumn\dfrac{\gauss}{\sumk\pi_k\gauss}+\pi_k\lambda=0
+\end{equation}
+对$k\in\{1,2,\ldots K\}$，可以像这样构造$K$个等式，将这$K$个等式相加，可得
+\begin{align}
+    \sum^K_{k=1}\left(\pi_k\sumn\dfrac{\gauss}{\sumk\pi_k\gauss}\right)+\sum^K_{k=1}\pi_k\lambda &= 0 \\
+    \sum^K_{k=1}\left(\sumn\dfrac{\pi_k\gauss}{\sumk\pi_k\gauss}\right)+\sum^K_{k=1}\pi_k\lambda &= 0 \\
+    \sumn\left(\sum^K_{k=1}\dfrac{\pi_k\gauss}{\sumk\pi_k\gauss}\right)+\sum^K_{k=1}\pi_k\lambda &= 0 \\
+    \sumn\left(\dfrac{\sum\limits^K_{k=1}\pi_k\gauss}{\sumk\pi_k\gauss}\right)+\sum^K_{k=1}\pi_k\lambda &= 0 \\
+    \sumn1+\lambda &= 0 \\
+    \lambda &= -n
+\end{align}
+注意到式\ref{pis}也可用式\ref{gamma}化简为
+\begin{equation}
+    \sumn\gammaz{k}+\pi_k\lambda=0
+\end{equation}
+再利用$\lambda=-n$，可得
+\begin{equation}
+    \label{pi}
+    \pi_k=\dfrac{1}{n}\sumn\gammaz{k}
+\end{equation}
+
+至此，三个重要参数$\pi_k, \mu_k, \Sigma_k$的迭代公式分别由式\ref{mu}、\ref{Sigma}、\ref{pi}给出。
+
+EM算法可以描述为：
+\begin{itemize}
+    \item 对于每一个簇$k$，都初始化对应的$\mu_k$、$\Sigma_k$和$\pi_k$
+    \item E步骤：对于每一个训练样本$\mathbf{x}_i$，都计算$\gammaz{k}$，即
+    \begin{equation*}
+        \gammaz{k}=\dfrac{\pi_k\gauss}{\sumk\pi_k\gauss}
+    \end{equation*}
+    \item M步骤：利用$\gammaz{k}$重新估计参数$\pi_k$、$\mu_k$和$\Sigma_k$
+    \begin{align*}
+        \mu_k    &= \dfrac{\sumn\left(\gammaz{k}\mathbf{x}_i\right)}{\sumn\gammaz{k}} \\
+        \Sigma_k &= \dfrac{\sumn\left(\gammaz{k}\left(\mathbf{x}_i-\mu_k\right)\left(\mathbf{x}_i-\mu_k\right)^T\right)}{\sumn\gammaz{k}} \\
+        \pi_k    &= \dfrac{1}{n}\sumn\gammaz{k}
+    \end{align*}
+    \item 当对数似然函数
+    \begin{equation*}
+        \mathcal{L}\left(\mathbf{X}\right)=\sumn\ln\left(\sumk\pi_k\gauss\right)
+    \end{equation*}
+    的变化量或某个参数的变化量低于某个阈值时，可以认为EM算法收敛\cite{PRML}；否则重新进行E和M步骤
+\end{itemize}
