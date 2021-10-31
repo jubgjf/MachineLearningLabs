@@ -1,0 +1,134 @@
+\section{设计思想（本程序中的用到的主要算法及数据结构）}
+
+\subsection{PCA降维}
+
+我们有一组数据，其中有$N$个$D$维向量$\mathbf{x}_1, \mathbf{x}_2, \ldots \mathbf{x}_N$，我们的目标是将这个数据集投影到维度$M$中去，其中$M\leq D$。
+
+引入$D$维空间中的一组单位正交基向量
+\begin{equation*}
+    \begin{bmatrix}
+        \mathbf{u}_1 \\
+        \vdots \\
+        \mathbf{u}_D \\
+    \end{bmatrix}
+\end{equation*}
+由于是基向量，所以每个数据点都可以表示为基向量的线性组合，即
+\begin{equation}
+    \mathbf{x}_n=\sum^D_{i=1}\alpha_{ni}\mathbf{u}_i
+    \label{alpha}
+\end{equation}
+其中系数$\alpha_{ni}$相当于数据点$\mathbf{x}_n$映射到以$\mathbf{u}_i$为新坐标系时的新坐标，即$\mathbf{x}_n$到基向量$\mathbf{u}_i$的投影是$\alpha_{ni}$，因此可得
+\begin{equation}
+    \alpha_{ni}=\mathbf{x}^T_n\mathbf{u}_i
+\end{equation}
+将其带入到式\ref{alpha}中，可得
+\begin{equation}
+    \mathbf{x}_n=\sum^D_{i=1}\left(\mathbf{x}^T_n\mathbf{u}_i\right)\mathbf{u}_i
+    \label{xn}
+\end{equation}
+
+式\ref{xn}是对于向量$\mathbf{x}_n$的精准描述，但是由于我们要将$D$维降至$M$维，因此只能使用$M$个变量来描述这个$\mathbf{x}_n$。不妨用前$M$个基向量来表示这个$M$维空间，则数据点$\mathbf{x}_n$的估计值为
+\begin{equation}
+    \tilde{\mathbf{x}}_n = \sum^M_{i=1}z_{ni}\mathbf{u}_i + \sum^D_{i=M+1}b_i\mathbf{u}_i
+    \label{txn}
+\end{equation}
+其中$z_{ni}$是降维后的数据点在$M$维空间中的坐标，而$b_i$是常数，对所有数据点都相同，这起到了降维的效果，数据的失真也是这一项引起的。
+
+我们可以认为失真是真实样本与降维后的样本之间的距离。将每个样本的失真取平均，可得总体的失真，即
+\begin{equation}
+    J=\dfrac{1}{N}\sum^N_{n=1}\left\lVert \mathbf{x}_n-\tilde{\mathbf{x}}_n\right\rVert ^2
+    \label{loss}
+\end{equation}
+要最小化这个失真，首先对$z_{ni}$求导
+\begin{align}
+    \dfrac{\partial J}{\partial z_{ni}}
+    \label{lossdz}
+    &= \dfrac{\partial}{\partial z_{ni}}\left(\dfrac{1}{N}\sum^N_{n=1}\left\lVert \mathbf{x}_n-\tilde{\mathbf{x}}_n\right\rVert ^2\right) \\
+    &= \dfrac{\partial}{\partial z_{ni}}\left(\dfrac{1}{N}\sum^N_{n=1}\left\lVert \mathbf{x}_n-\sum^M_{i=1}z_{ni}\mathbf{u}_i-\sum^D_{i=M+1}b_i\mathbf{u}_i\right\rVert ^2\right) \\
+    &= \dfrac{\partial}{\partial z_{ni}}\left(\dfrac{1}{N}\sum^N_{n=1}\left(\mathbf{x}_n-\sum^M_{i=1}z_{ni}\mathbf{u}_i-\sum^D_{i=M+1}b_i\mathbf{u}_i\right)^T\left(\mathbf{x}_n-\sum^M_{i=1}z_{ni}\mathbf{u}_i-\sum^D_{i=M+1}b_i\mathbf{u}_i\right)\right) \\
+    &= \dfrac{\partial}{\partial z_{ni}}\left(\dfrac{1}{N}\sum^N_{n=1}\left(\mathbf{x}^T_n-\sum^M_{i=1}z_{ni}\mathbf{u}^T_i-\sum^D_{i=M+1}b_i\mathbf{u}^T_i\right)\left(\mathbf{x}_n-\sum^M_{i=1}z_{ni}\mathbf{u}_i-\sum^D_{i=M+1}b_i\mathbf{u}_i\right)\right) \\
+    &= \dfrac{1}{N}\sum^N_{n=1}\dfrac{\partial\left(\left(\mathbf{x}^T_n-z_{ni}\mathbf{u}^T_i\right)\left(\mathbf{x}_n-z_{ni}\mathbf{u}_i\right)\right)}{\partial z_{ni}} \\
+    &= \dfrac{1}{N}\sum^N_{n=1}\left(-\mathbf{x}^T_n\mathbf{u}_i-\mathbf{u}^T_i\mathbf{x}_n+2z_{ni}\mathbf{u}^T_i\mathbf{u}_i\right)
+\end{align}
+由于$\mathbf{u}_1, \ldots, \mathbf{u}_D$是一组单位正交基向量，所以$\mathbf{u}^T_i\mathbf{u}_i=1$。因此令式\ref{lossdz}为$0$，可得
+\begin{equation}
+    z_{ni}=\mathbf{x}^T_n\mathbf{u}_i
+    \label{z}
+\end{equation}
+同理，令$J$关于$b_i$的导数为$0$，可得
+\begin{equation}
+    b_i=\overline{\mathbf{x}}^T\mathbf{u}_i
+    \label{b}
+\end{equation}
+其中$\overline{\mathbf{x}}$是样本向量的均值。
+
+利用式\ref{z}和\ref{b}，代入到式\ref{txn}中，并用式\ref{xn}相减，可得
+\begin{equation}
+    \mathbf{x}_n-\tilde{\mathbf{x}}_n=\sum^D_{i=M+1}\left(\left(\mathbf{x}_n-\overline{\mathbf{x}}\right)^T\mathbf{u}_i\right)\mathbf{u}_i
+    \label{x-tx}
+\end{equation}
+将式\ref{x-tx}代入到式\ref{loss}中，可得
+\begin{align}
+    J
+    &= \dfrac{1}{N}\sum^N_{n=1}\left\lVert\mathbf{x}_n-\tilde{\mathbf{x}}_n\right\rVert ^2 \\
+    &= \dfrac{1}{N}\sum^N_{n=1}\left\lVert\sum^D_{i=M+1}\left(\left(\mathbf{x}_n-\overline{\mathbf{x}}\right)^T\mathbf{u}_i\right)\mathbf{u}_i\right\rVert ^2 \\
+    &= \dfrac{1}{N}\sum^N_{n=1}\left(\left(\sum^D_{i=M+1}\left(\left(\mathbf{x}_n-\overline{\mathbf{x}}\right)^T\mathbf{u}_i\right)\mathbf{u}_i\right)^T\left(\sum^D_{i=M+1}\left(\left(\mathbf{x}_n-\overline{\mathbf{x}}\right)^T\mathbf{u}_i\right)\mathbf{u}_i\right)\right) \\
+    &= \dfrac{1}{N}\sum^N_{n=1}\left(\left(\sum^D_{i=M+1}\left(\left(\mathbf{x}_n-\overline{\mathbf{x}}\right)^T\mathbf{u}_i\right)\mathbf{u}^T_i\right)\left(\sum^D_{i=M+1}\left(\left(\mathbf{x}_n-\overline{\mathbf{x}}\right)^T\mathbf{u}_i\right)\mathbf{u}_i\right)\right)
+\end{align}
+由于$\mathbf{u}_1, \ldots, \mathbf{u}_D$是一组单位正交基向量，所以$\mathbf{u}^T_i\mathbf{u}_i=1$且$\mathbf{u}^T_i\mathbf{u}_j=0$，因此上式可继续化简
+\begin{align}
+    J
+    &= \dfrac{1}{N}\sum^N_{n=1}\left(\sum^D_{i=M+1}\left(\left(\left(\mathbf{x}_n-\overline{\mathbf{x}}\right)^T\mathbf{u}_i\right)\left(\left(\mathbf{x}_n-\overline{\mathbf{x}}\right)^T\mathbf{u}_i\right)\right)\right) \\
+    &= \dfrac{1}{N}\sum^N_{n=1}\left(\sum^D_{i=M+1}\left(\left(\left(\mathbf{x}_n-\overline{\mathbf{x}}\right)^T\mathbf{u}_i\right)^T\left(\left(\mathbf{x}_n-\overline{\mathbf{x}}\right)^T\mathbf{u}_i\right)\right)\right) \\
+    &= \dfrac{1}{N}\sum^N_{n=1}\left(\sum^D_{i=M+1}\left(\left(\mathbf{u}^T_i\left(\mathbf{x}_n-\overline{\mathbf{x}}\right)\right)\left(\left(\mathbf{x}_n-\overline{\mathbf{x}}\right)^T\mathbf{u}_i\right)\right)\right) \\
+    &= \dfrac{1}{N}\sum^N_{n=1}\left(\sum^D_{i=M+1}\left(\mathbf{u}^T_i\left(\mathbf{x}_n-\overline{\mathbf{x}}\right)\left(\mathbf{x}_n-\overline{\mathbf{x}}\right)^T\mathbf{u}_i\right)\right) \\
+    &= \sum^D_{i=M+1}\left(\mathbf{u}^T_i\left(\dfrac{1}{N}\sum^N_{n=1}\left(\mathbf{x}_n-\overline{\mathbf{x}}\right)\left(\mathbf{x}_n-\overline{\mathbf{x}}\right)^T\right)\mathbf{u}_i\right) \\
+    &= \sum^D_{i=M+1}\mathbf{u}^T_i\mathbf{S}\mathbf{u}_i
+\end{align}
+其中
+\begin{equation}
+    \mathbf{S}=\dfrac{1}{N}\sum^N_{n=1}\left(\mathbf{x}_n-\overline{\mathbf{x}}\right)\left(\mathbf{x}_n-\overline{\mathbf{x}}\right)^T
+\end{equation}
+正是样本数据向量的协方差矩阵。
+
+要在一个方向$\mathbf{u}_i$上，针对$J$进行最小化。考虑到约束条件$\mathbf{u}^T_i\mathbf{u}_i=1$，可用拉格朗日乘子法，对$\mathbf{u}_i$求导
+\begin{align}
+    \dfrac{\partial\mathcal{L}}{\partial\mathbf{u}_i}
+    &= \dfrac{\partial}{\partial\mathbf{u}_i}\left(\mathbf{u}^T_i\mathbf{S}\mathbf{u}_i+\lambda_i\left(1-\mathbf{u}^T_i\mathbf{u}_i\right)\right) \\
+    &= 2\left(\mathbf{S}\mathbf{u}_i-\lambda_i\mathbf{u}_i\right)
+\end{align}
+令其为$0$，可得
+\begin{equation}
+    \mathbf{S}\mathbf{u}_i=\lambda_i\mathbf{u}_i
+    \label{S}
+\end{equation}
+可见$\mathbf{u}_i$一定是$\mathbf{S}$的一个特征向量。在式\ref{S}的两侧左乘$\mathbf{u}^T_i$，因此可得
+\begin{equation}
+    \lambda_i=\mathbf{u}^T_i\mathbf{S}\mathbf{u}_i
+\end{equation}
+所以
+\begin{align}
+    J
+    &= \sum^D_{i=M+1}\mathbf{u}^T_i\mathbf{S}\mathbf{u}_i \\
+    &= \sum^D_{i=M+1}\lambda_i
+\end{align}
+
+因此，只需选择$D-M$个最小的特征值对应的特征向量，就可以获得$J$的最小值；而剩余的$M$个较大特征值的特征向量则对应了降维后的$M$维空间的基向量。
+
+\subsection{数据旋转}
+
+数据降维是针对$M<D$的情景。而当$M=D$时，仅仅是将坐标轴旋转，将计算得到的特征向量作为新的坐标系的基向量。
+
+\subsection{数据重建}
+
+在式\ref{xn}的基础上，对每个数据点进行平移，可得
+\begin{equation}
+    \overline{\mathbf{x}}_n=\sum^D_{i=1}\left(\overline{\mathbf{x}}^T_n\mathbf{u}_i\right)\mathbf{u}_i
+\end{equation}
+再将式\ref{z}和\ref{b}代入式\ref{txn}中，可得用$M$维数据重建回$D$维的公式
+\begin{align}
+    \tilde{\mathbf{x}}_n
+    &= \sum^M_{i=1}\left(\mathbf{x}^T_n\mathbf{u}_i\right)\mathbf{u}_i+\sum^D_{i=M+1}\left(\overline{\mathbf{x}}^T\mathbf{u}_i\right)\mathbf{u}_i \\
+    &= \sum^M_{i=1}\left(\mathbf{x}^T_n\mathbf{u}_i\right)\mathbf{u}_i+\sum^D_{i=1}\left(\overline{\mathbf{x}}^T\mathbf{u}_i\right)\mathbf{u}_i-\sum^M_{i=1}\left(\overline{\mathbf{x}}^T\mathbf{u}_i\right)\mathbf{u}_i \\
+    &= \overline{\mathbf{x}}+\sum^M_{i=1}\left(\mathbf{x}^T_n\mathbf{u}_i-\overline{\mathbf{x}}^T\mathbf{u}_i\right)\mathbf{u}_i
+\end{align}
